@@ -1,9 +1,14 @@
 import streamlit as st
 import pandas as pd
 import json
+import evadb
+from typing import Dict, List
+import os
+import shutil
 
 from agent import query_agent, create_agent
 
+cursor = evadb.connect().cursor()
 
 def decode_response(response: str) -> dict:
     """This function converts the string response from the model to a dictionary object.
@@ -16,7 +21,7 @@ def decode_response(response: str) -> dict:
     """
     return json.loads(response)
 
-def write_response(response_dict: dict):
+def generate_response(response_dict: dict, cursor: evadb.EvaDBCursor):
     """
     Write a response from an agent to a Streamlit app.
 
@@ -29,6 +34,7 @@ def write_response(response_dict: dict):
 
     # Check if the response is an answer.
     if "answer" in response_dict:
+        cursor.table("")
         st.write(response_dict["answer"])
 
     # Check if the response is a bar chart.
@@ -51,7 +57,6 @@ def write_response(response_dict: dict):
         df = pd.DataFrame(data["data"], columns=data["columns"])
         st.table(df)
 
-
 st.title("👨‍💻 Chat with your CSV")
 
 st.write("Please upload your CSV file below.")
@@ -71,4 +76,4 @@ if st.button("Submit Query", type="primary"):
     decoded_response = decode_response(response)
 
     # Write the response to the Streamlit app.
-    write_response(decoded_response)
+    generate_response(decoded_response)

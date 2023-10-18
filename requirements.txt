@@ -1,5 +1,4 @@
 evadb
-langchain
 openai
 streamlit
 python-environ

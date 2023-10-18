@@ -1,15 +1,18 @@
 # agent.py
-from langchain import OpenAI
-from langchain.agents import create_pandas_dataframe_agent
+import os
+import evadb
 import pandas as pd
 
 # Setting up the api key
 import environ
+#from dotenv import load_dotenv
 
-env = environ.Env()
-environ.Env.read_env()
+# Load environment variables from .env
+#load_dotenv()
 
-API_KEY = env("apikey")
+cursor = evadb.connect().cursor()
+
+API_KEY = os.environ.get("apikey")
 
 def create_agent(filename: str):
     """
@@ -23,7 +26,34 @@ def create_agent(filename: str):
     """
 
     # Create an OpenAI object.
-    llm = OpenAI(openai_api_key=API_KEY)
+    try_to_import_openai()
+    import openai
+
+    @retry(tries=6, delay=20)
+    def completion_with_backoff(**kwargs):
+        return openai.ChatCompletion.create(**kwargs)
+
+    # Register API key
+    openai.api_key = os.environ.get('OPENAI_KEY')
+    assert len(openai.api_key) != 0, (
+        "Please set your OpenAI API key in evadb.yml file (third_party,"
+        " open_api_key) or environment variable (OPENAI_KEY)"
+    )
+
+    queries = text_df[text_df.columns[0]]
+    content = text_df[text_df.columns[0]]
+    if len(text_df.columns) > 1:
+        queries = text_df.iloc[:, 0]
+        content = text_df.iloc[:, 1]
+
+    prompt = None
+    if len(text_df.columns) > 2:
+        prompt = text_df.iloc[0, 2]
+
+    # openai api currently supports answers to a single prompt only
+    completion_tokens = 0
+    prompt_tokens = 0
+
 
     # Read the CSV file into a Pandas DataFrame.
     df = pd.read_csv(filename)
